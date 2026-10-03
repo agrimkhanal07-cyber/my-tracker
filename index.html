@@ -3,74 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visitor Tracker Pro</title>
+    <title>My Tracker Website</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        h1 { color: #1a73e8; font-size: 24px; margin-bottom: 10px; }
-        p { color: #5f6368; font-size: 14px; }
-        .session-box { background: #f8f9fa; border: 1px solid #dadce0; padding: 15px; border-radius: 8px; margin: 20px 0; word-break: break-all; font-family: monospace; color: #d93025; font-weight: bold; }
-        .btn { display: block; width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; color: white; text-decoration: none; box-sizing: border-box; }
-        .btn-1 { background: #1a73e8; }
-        .btn-2 { background: #34a853; }
-        .btn-3 { background: #ea4335; }
-        .btn:hover { opacity: 0.9; }
-        #log-status { margin-top: 15px; font-size: 12px; color: #137333; font-weight: bold; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        h1 { color: #0066cc; margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin: 15px 0; font-size: 14px; text-align: center; border: 1px solid #ccc; border-radius: 6px; background: #fafafa; }
+        button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; font-size: 15px; color: white; cursor: pointer; font-weight: bold; }
+        .btn-1 { background-color: #0066cc; }
+        .btn-2 { background-color: #28a745; }
+        .btn-3 { background-color: #dc3545; }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="card">
         <h1>Welcome!</h1>
         <p>Your Unique Session ID is:</p>
-        <div class="session-box" id="session-id">Generating ID...</div>
-
-        <button class="btn btn-1 trackable-btn" data-action="Clicked Special Offer">Click Me: Special Offer</button>
-        <button class="btn btn-2 trackable-btn" data-action="Clicked Download Guide">Download Free Guide</button>
-        <button class="btn btn-3 trackable-btn" data-action="Clicked Contact Support">Contact Support</button>
+        <input type="text" id="sessionId" readonly>
         
-        <div id="log-status"></div>
+        <button class="btn-1" onclick="trackClick('Special Offer Clicked')">Click Me: Special Offer</button>
+        <button class="btn-2" onclick="trackClick('Download Guide Clicked')">Download Free Guide</button>
+        <button class="btn-3" onclick="trackClick('Contact Support Clicked')">Contact Support</button>
     </div>
 
+    <!-- Hidden Form for Data Collection -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+    <form id="trackerForm" action="https://docs.google.com/forms/d/e/1FAIpQLSdFIDVpLa65SaoK77m7cbuV5JD7AMgi2Wcdc6urfLdMN4hwPg/formResponse" method="POST" target="hidden_iframe" style="display:none;">
+        <input type="text" name="entry.1438914619" id="formEntryData">
+    </form>
+
     <script>
-        function generateSessionId() {
-            let sid = localStorage.getItem('visitor_session_id');
-            if (!sid) {
-                sid = 'sid_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                localStorage.setItem('visitor_session_id', sid);
-            }
-            return sid;
+        // Session ID Logic
+        let sessionId = localStorage.getItem('session_id');
+        if (!sessionId) {
+            sessionId = 'sid_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('session_id', sessionId);
+        }
+        document.getElementById('sessionId').value = sessionId;
+
+        // Send Visit Log Automatically
+        sendDataToGoogleSheet("New Visit | Session ID: " + sessionId);
+
+        // Click Tracking Logic
+        function trackClick(actionName) {
+            let logDetails = "Action: " + actionName + " | Session ID: " + sessionId;
+            sendDataToGoogleSheet(logDetails);
+            alert("Action recorded successfully!");
         }
 
-        const currentSessionId = generateSessionId();
-        document.getElementById('session-id').innerText = currentSessionId;
-
-        const visitData = {
-            sessionId: currentSessionId,
-            time: new Date().toLocaleString(),
-            userAgent: navigator.userAgent
-        };
-        
-        let allVisits = JSON.parse(localStorage.getItem('all_visits') || '[]');
-        if (!allVisits.some(v => v.sessionId === currentSessionId)) {
-            allVisits.push(visitData);
-            localStorage.setItem('all_visits', JSON.stringify(allVisits));
+        // Function to submit data to Google Form seamlessly
+        function sendDataToGoogleSheet(dataString) {
+            document.getElementById('formEntryData').value = dataString;
+            document.getElementById('trackerForm').submit();
         }
-
-        document.querySelectorAll('.trackable-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const actionName = this.getAttribute('data-action');
-                let allClicks = JSON.parse(localStorage.getItem('all_clicks') || '[]');
-                allClicks.push({
-                    sessionId: currentSessionId,
-                    action: actionName,
-                    time: new Date().toLocaleString()
-                });
-                localStorage.setItem('all_clicks', JSON.stringify(allClicks));
-                
-                document.getElementById('log-status').innerText = "✓ Action recorded for your Session ID!";
-            });
-        });
     </script>
+
 </body>
 </html>
